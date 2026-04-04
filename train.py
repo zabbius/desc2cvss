@@ -1,29 +1,85 @@
+import numpy as np
 import torch
-
-from sklearn.metrics import fbeta_score, accuracy_score
-from torch import nn
+from sklearn.metrics import fbeta_score, accuracy_score, recall_score, precision_score
 from tqdm import tqdm
 
 from cvss_metrics import CVSS_METRICS
+from model import ApproxFBetaLoss
 
-def compute_metrics(predictions, labels):
-    """Вычисление accuracy и F1 для конкретной метрики"""
+
+def compute_metrics(predictions, labels, metric_name):
+    """Вычисление accuracy, FBeta, recall, precision для конкретной метрики с учетом beta и весов классов"""
     preds = torch.argmax(predictions, dim=1).cpu().numpy()
     true = labels.cpu().numpy()
 
+    config = CVSS_METRICS[metric_name]
+    beta = config['classes_beta']
+    class_weights = config['classes_weights']
+    num_classes = len(config['classes'])
+
+    # Вычисляем метрики для каждого класса отдельно
+    fbeta_scores = []
+    recall_scores = []
+    precision_scores = []
+    class_accuracies = []
+
+    for class_idx in range(num_classes):
+        # Создаем бинарные метки для текущего класса
+        true_binary = (true == class_idx).astype(int)
+        preds_binary = (preds == class_idx).astype(int)
+
+        # Проверяем, есть ли положительные примеры
+        if np.sum(true_binary) == 0 and np.sum(preds_binary) == 0:
+            fbeta_scores.append(1.0)  # Нет примеров класса - считаем идеальным
+            recall_scores.append(1.0)
+            precision_scores.append(1.0)
+        else:
+            fbeta = fbeta_score(true_binary, preds_binary, beta=beta[class_idx], zero_division=0)
+            recall = recall_score(true_binary, preds_binary, zero_division=0)
+            precision = precision_score(true_binary, preds_binary, zero_division=0)
+
+            fbeta_scores.append(fbeta)
+            recall_scores.append(recall)
+            precision_scores.append(precision)
+
+        # Accuracy для класса (доля правильных предсказаний для этого класса)
+        if np.sum(true_binary) == 0:
+            class_accuracies.append(1.0)  # Нет примеров класса
+        else:
+            correct = np.sum((true_binary == 1) & (preds_binary == 1))
+            total = np.sum(true_binary)
+            class_accuracies.append(correct / total if total > 0 else 1.0)
+
+    # Взвешенное среднее с использованием classes_weights
+    weighted_fbeta = np.average(fbeta_scores, weights=class_weights)
+    weighted_recall = np.average(recall_scores, weights=class_weights)
+    weighted_precision = np.average(precision_scores, weights=class_weights)
+    weighted_class_accuracy = np.average(class_accuracies, weights=class_weights)
+
+    # Общая accuracy (не взвешенная, просто доля правильных ответов)
+    overall_accuracy = accuracy_score(true, preds)
+
     return {
-        'accuracy': accuracy_score(true, preds),
-        'fbeta': fbeta_score(true, preds, beta=1, average='macro')
+        'accuracy': overall_accuracy,
+        'weighted_accuracy': weighted_class_accuracy,
+        'fbeta': weighted_fbeta,
+        'recall': weighted_recall,
+        'precision': weighted_precision,
+        'per_class_fbeta': fbeta_scores,
+        'per_class_recall': recall_scores,
+        'per_class_precision': precision_scores
     }
 
-def train_epoch(model, dataloader, optimizer, scheduler, criterion, device):
+def train_epoch(model, dataloader, optimizer, scheduler, device):
     """Одна эпоха обучения"""
     model.train()
     total_loss = 0
-    all_predictions = {metric: [] for metric in CVSS_METRICS.keys()}
-    all_labels = {metric: [] for metric in CVSS_METRICS.keys()}
 
-    for batch in tqdm(dataloader, desc="Training"):
+    loss_fn = ApproxFBetaLoss().to(device)
+
+    progress_bar = tqdm(dataloader, desc="Training", dynamic_ncols=True)
+
+    for batch_idx, batch in enumerate(progress_bar):
         # Перемещаем на устройство
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -33,18 +89,7 @@ def train_epoch(model, dataloader, optimizer, scheduler, criterion, device):
         # Forward pass
         outputs = model(input_ids, attention_mask, tfidf_features)
 
-        # Вычисляем потери для каждой задачи
-        task_losses = []
-        for metric_name in CVSS_METRICS.keys():
-            loss = nn.functional.cross_entropy(outputs[metric_name], labels[metric_name])
-            task_losses.append(loss)
-
-            # Сохраняем для метрик
-            all_predictions[metric_name].append(outputs[metric_name].detach())
-            all_labels[metric_name].append(labels[metric_name])
-
-        # Multi-task loss с автоматической настройкой весов
-        loss = criterion(task_losses)
+        loss, _ = loss_fn(outputs, labels)
 
         # Backward pass
         optimizer.zero_grad()
@@ -55,13 +100,20 @@ def train_epoch(model, dataloader, optimizer, scheduler, criterion, device):
 
         total_loss += loss.item()
 
+        current_loss = loss.item()
+        avg_loss = total_loss / (batch_idx + 1)
+        progress_bar.set_postfix({
+            'loss': f'{current_loss:.4f}',
+            'avg_loss': f'{avg_loss:.4f}'
+        })
+
     return total_loss / len(dataloader)
 
 
 def evaluate(model, dataloader, device):
     """Оценка модели"""
     model.eval()
-    metrics = {metric: {'accuracy': 0, 'f1': 0} for metric in CVSS_METRICS.keys()}
+    metrics = {}
 
     all_predictions = {metric: [] for metric in CVSS_METRICS.keys()}
     all_labels = {metric: [] for metric in CVSS_METRICS.keys()}
@@ -84,7 +136,7 @@ def evaluate(model, dataloader, device):
         preds = torch.cat(all_predictions[metric_name], dim=0)
         labels = torch.cat(all_labels[metric_name], dim=0)
 
-        task_metrics = compute_metrics(preds, labels)
+        task_metrics = compute_metrics(preds, labels, metric_name)
         metrics[metric_name] = task_metrics
 
     return metrics

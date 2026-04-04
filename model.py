@@ -88,3 +88,67 @@ class MultiTaskLoss(nn.Module):
             precision = torch.exp(-self.log_vars[i])
             total_loss += precision * loss + self.log_vars[i] / 2
         return total_loss
+
+class ApproxFBetaLoss(nn.Module):
+    """
+    Упрощенная версия для прямой оптимизации f-beta score
+    """
+
+    def __init__(self, epsilon=1e-7):
+        super().__init__()
+        self.epsilon = epsilon
+
+    def forward(self, outputs, targets):
+        """
+        Вычисление взвешенного f-beta loss
+
+        Returns:
+            total_loss: взвешенный f-beta loss
+            component_losses: словарь с loss для каждой компоненты
+        """
+        total_loss = 0.0
+        component_losses = {}
+
+        for metric_name, logits in outputs.items():
+            config = CVSS_METRICS[metric_name]
+            targets_metric = targets[metric_name]
+
+            # Получаем вероятности
+            probs = torch.softmax(logits, dim=1)
+            targets_one_hot = torch.zeros_like(probs).scatter_(1, targets_metric.unsqueeze(1), 1)
+
+            # Вычисляем weighted f-beta для компоненты
+            per_class_fbeta = []
+
+            for class_idx, (beta, class_weight) in enumerate(zip(config['classes_beta'], config['classes_weights'])):
+                p = probs[:, class_idx]
+                t = targets_one_hot[:, class_idx]
+
+                # Мягкие метрики
+                true_positives = (p * t).sum()
+                predicted_positives = p.sum()
+                actual_positives = t.sum()
+
+                precision = true_positives / (predicted_positives + self.epsilon)
+                recall = true_positives / (actual_positives + self.epsilon)
+
+                beta_squared = beta ** 2
+                fbeta = (1 + beta_squared) * (precision * recall) / (beta_squared * precision + recall + self.epsilon)
+
+                # Применяем вес класса
+                per_class_fbeta.append(fbeta * class_weight)
+
+            # Взвешенное среднее по классам для компоненты
+            total_class_weight = sum(config['classes_weights'])
+            component_fbeta = sum(per_class_fbeta) / total_class_weight
+
+            # Loss = 1 - fbeta
+            component_loss = 1 - component_fbeta
+
+            # Применяем вес компоненты
+            weighted_component_loss = component_loss * config['weight']
+            total_loss += weighted_component_loss
+
+            component_losses[metric_name] = component_loss.detach().cpu().item()
+
+        return total_loss, component_losses
