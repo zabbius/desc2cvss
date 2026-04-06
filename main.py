@@ -99,6 +99,7 @@ for epoch in range(CONFIG['EPOCHS']):
     path = f"cvss_model_epoch_{epoch + 1:02d}.pth"
     torch.save({
         'model_state_dict': model.state_dict(),
+        'tfidf_vectorizer': tfidf_vectorizer,
         'metrics': metrics,
         'weighted_avg_fbeta': weighted_avg_fbeta,
         'weighted_avg_recall': weighted_avg_recall,
