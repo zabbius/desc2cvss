@@ -34,7 +34,6 @@ CVSS_METRICS = {
         'classes': ['NONE', 'LOW', 'HIGH'],
         'classes_weights': [1.7, 2.2, 2.1],
         'classes_beta': [2.0, 2.0, 2.0],
-        'num_classes': 3,
         'weight': 1.0
     },
     'integrity': {
