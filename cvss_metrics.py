@@ -2,51 +2,51 @@
 CVSS_METRICS = {
     'attack_vector': {
         'classes': ['NETWORK', 'ADJACENT_NETWORK', 'LOCAL', 'PHYSICAL'],
-        'classes_weights': [1.0, 1.0, 1.0, 1.0],  # веса для усреднения метрики
-        'classes_beta': [1.0, 1.0, 1.0, 1.0],  # beta для f-score по отдельным классам
+        'classes_weights': [1.8, 4.3, 2.4, 4.9],  # веса для усреднения метрики
+        'classes_beta': [2.0, 2.0, 2.0, 2.0],  # beta для f-score по отдельным классам
         'weight': 1.0  # вес для усреднения общего скора
     },
     'attack_complexity': {
         'classes': ['LOW', 'HIGH'],
-        'classes_weights': [1.0, 1.0],
-        'classes_beta': [1.0, 1.0],
+        'classes_weights': [1.7, 3.1],
+        'classes_beta': [2.0, 2.0],
         'weight': 1.0
     },
     'privileges_required': {
         'classes': ['NONE', 'LOW', 'HIGH'],
-        'classes_weights': [1.0, 1.0, 1.0],
-        'classes_beta': [1.0, 1.0, 1.0],
+        'classes_weights': [2.0, 2.2, 3.1],
+        'classes_beta': [2.0, 2.0, 2.0],
         'weight': 1.5  # Больший вес из-за дисбаланса
     },
     'user_interaction': {
         'classes': ['NONE', 'REQUIRED'],
-        'classes_weights': [1.0, 1.0],
-        'classes_beta': [1.0, 1.0],
+        'classes_weights': [1.9, 2.1],
+        'classes_beta': [2.0, 2.0],
         'weight': 1.0
     },
     'scope': {
         'classes': ['UNCHANGED', 'CHANGED'],
-        'classes_weights': [1.0, 1.0],
-        'classes_beta': [1.0, 1.0],
+        'classes_weights': [1.8, 2.5],
+        'classes_beta': [2.0, 2.0],
         'weight': 1.0
     },
     'confidentiality': {
         'classes': ['NONE', 'LOW', 'HIGH'],
-        'classes_weights': [1.0, 1.0, 1.0],
-        'classes_beta': [1.0, 1.0, 1.0],
+        'classes_weights': [1.7, 2.2, 2.1],
+        'classes_beta': [2.0, 2.0, 2.0],
         'num_classes': 3,
         'weight': 1.2
     },
     'integrity': {
         'classes': ['NONE', 'LOW', 'HIGH'],
-        'classes_weights': [1.0, 1.0, 1.0],
-        'classes_beta': [1.0, 1.0, 1.0],
+        'classes_weights': [1.5, 2.1, 2.2],
+        'classes_beta': [2.0, 2.0, 2.0],
         'weight': 1.2
     },
     'availability': {
         'classes': ['NONE', 'LOW', 'HIGH'],
-        'classes_weights': [1.0, 1.0, 1.0],
-        'classes_beta': [1.0, 1.0, 1.0],
+        'classes_weights': [1.3, 2.8, 2.1],
+        'classes_beta': [2.0, 2.0, 2.0],
         'weight': 1.2
     }
 }

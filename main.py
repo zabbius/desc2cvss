@@ -23,8 +23,8 @@ print("Fitting TF-IDF vectorizer...")
 #data = pandas.read_csv("data/output_ML_all.csv.gz")
 data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
 
-train_data, test_data = train_test_split(data, test_size=0.8, random_state=42, stratify=data['year'])
-train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=42, stratify=train_data['year'])
+train_data, test_data = train_test_split(data, test_size=0.1, random_state=42, stratify=data['year'])
+train_data, val_data = train_test_split(train_data, test_size=0.1, random_state=42, stratify=train_data['year'])
 
 train_dataset = CVEDataset(train_data, tokenizer)
 tfidf_vectorizer = train_dataset.tfidf_vectorizer
