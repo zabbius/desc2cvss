@@ -16,7 +16,7 @@ CVSS_METRICS = {
         'classes': ['NONE', 'LOW', 'HIGH'],
         'classes_weights': [2.0, 2.2, 3.1],
         'classes_beta': [2.0, 2.0, 2.0],
-        'weight': 1.5  # Больший вес из-за дисбаланса
+        'weight': 1.0
     },
     'user_interaction': {
         'classes': ['NONE', 'REQUIRED'],
@@ -35,18 +35,18 @@ CVSS_METRICS = {
         'classes_weights': [1.7, 2.2, 2.1],
         'classes_beta': [2.0, 2.0, 2.0],
         'num_classes': 3,
-        'weight': 1.2
+        'weight': 1.0
     },
     'integrity': {
         'classes': ['NONE', 'LOW', 'HIGH'],
         'classes_weights': [1.5, 2.1, 2.2],
         'classes_beta': [2.0, 2.0, 2.0],
-        'weight': 1.2
+        'weight': 1.0
     },
     'availability': {
         'classes': ['NONE', 'LOW', 'HIGH'],
         'classes_weights': [1.3, 2.8, 2.1],
         'classes_beta': [2.0, 2.0, 2.0],
-        'weight': 1.2
+        'weight': 1.0
     }
 }
