@@ -8,7 +8,7 @@ CONFIG = {
 
     # Параметры обучения
     "BATCH_SIZE": 16,
-    "EPOCHS": 5,
+    "EPOCHS": 10,
     "LEARNING_RATE": 2e-5,
     "MAX_LEN": 512,
     "WARMUP_STEPS": 100,

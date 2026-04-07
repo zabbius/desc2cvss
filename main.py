@@ -11,7 +11,7 @@ from cve_dataset import CVEDataset
 from model import SecureBERTWithTFIDF
 from train import evaluate, train_epoch, reduce_metrics, print_metrics
 
-
+tfidf_vectorizer = joblib.load("tfidf_vectorizer.joblib")
 data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
 
 def create_cvss_key(row):
@@ -28,8 +28,7 @@ train_data, val_data = train_test_split(train_data, test_size=0.1, random_state=
 # Инициализация токенизатора
 tokenizer = AutoTokenizer.from_pretrained(CONFIG['MODEL_NAME'])
 
-train_dataset = CVEDataset(train_data, tokenizer)
-tfidf_vectorizer = train_dataset.tfidf_vectorizer
+train_dataset = CVEDataset(train_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 val_dataset = CVEDataset(val_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 test_dataset = CVEDataset(test_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 
