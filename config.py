@@ -2,6 +2,10 @@ CONFIG = {
     # Модель
     "MODEL_NAME": "cisco-ai/SecureBERT2.0-base",
 
+    "MODEL_PATH_FORMAT": "cvss_model_epoch_{epoch:02d}.pth",
+
+    "START_EPOCH": 0,
+
     # Параметры обучения
     "BATCH_SIZE": 16,
     "EPOCHS": 5,

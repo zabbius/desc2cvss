@@ -2,13 +2,13 @@
 CVSS_METRICS = {
     'attack_vector': {
         'classes': ['NETWORK', 'ADJACENT_NETWORK', 'LOCAL', 'PHYSICAL'],
-        'classes_weights': [1.8, 4.3, 2.4, 4.9],  # веса для усреднения метрики
+        'classes_weights': [1.2, 3.6, 2.1, 4.6],  # веса для усреднения метрики
         'classes_beta': [2.0, 2.0, 2.0, 2.0],  # beta для f-score по отдельным классам
         'weight': 1.0  # вес для усреднения общего скора
     },
     'attack_complexity': {
         'classes': ['LOW', 'HIGH'],
-        'classes_weights': [1.7, 3.1],
+        'classes_weights': [1.7, 2.8],
         'classes_beta': [2.0, 2.0],
         'weight': 1.0
     },

@@ -1,3 +1,4 @@
+import joblib
 import pandas
 import torch
 from sklearn.model_selection import train_test_split
@@ -7,28 +8,28 @@ from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 from config import CONFIG
 from cve_dataset import CVEDataset
-from cvss_metrics import CVSS_METRICS
 from model import SecureBERTWithTFIDF
-from train import evaluate, train_epoch
+from train import evaluate, train_epoch, reduce_metrics, print_metrics
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print(f"Using device: {DEVICE}")
+data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
+
+def create_cvss_key(row):
+    return "_".join([
+        str(row['attack_vector']),
+        str(row['user_interaction']),
+    ])
+
+data['cvss_key'] = data.apply(create_cvss_key, axis=1)
+
+train_data, test_data = train_test_split(data, test_size=0.1, random_state=42, stratify=data['cvss_key'])
+train_data, val_data = train_test_split(train_data, test_size=0.1, random_state=42, stratify=train_data['cvss_key'])
 
 # Инициализация токенизатора
 tokenizer = AutoTokenizer.from_pretrained(CONFIG['MODEL_NAME'])
 
-# Создание TF-IDF векторайзера на тренировочных данных
-print("Fitting TF-IDF vectorizer...")
-#data = pandas.read_csv("data/output_ML_all.csv.gz")
-data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
-
-train_data, test_data = train_test_split(data, test_size=0.1, random_state=42, stratify=data['year'])
-train_data, val_data = train_test_split(train_data, test_size=0.1, random_state=42, stratify=train_data['year'])
-
 train_dataset = CVEDataset(train_data, tokenizer)
 tfidf_vectorizer = train_dataset.tfidf_vectorizer
-
 val_dataset = CVEDataset(val_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 test_dataset = CVEDataset(test_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 
@@ -37,8 +38,21 @@ train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffl
 val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False, num_workers=4)
 test_loader = DataLoader(test_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False, num_workers=4)
 
-# Инициализация модели
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(f"Using device: {DEVICE}")
+
 model = SecureBERTWithTFIDF().to(DEVICE)
+
+print(f"Starting from epoch {CONFIG['START_EPOCH']}")
+if CONFIG['START_EPOCH'] > 0:
+    path = CONFIG['MODEL_PATH_FORMAT'].format(epoch=CONFIG['START_EPOCH'])
+    checkpoint = torch.load(path, map_location='cuda' if torch.cuda.is_available() else 'cpu', weights_only=False)
+    print(f"Model loaded from {path}\nValidation Metrics:")
+    print_metrics(checkpoint['metrics'], checkpoint['reduced_metrics'])
+    model.load_state_dict(checkpoint['model_state_dict'])
+
 # Оптимизатор и scheduler
 optimizer = AdamW(model.parameters(), lr=CONFIG['LEARNING_RATE'])
 
@@ -47,10 +61,13 @@ total_steps = len(train_loader) * CONFIG['EPOCHS']
 scheduler = get_linear_schedule_with_warmup(
     optimizer, num_warmup_steps=CONFIG['WARMUP_STEPS'], num_training_steps=total_steps)
 
+epoch = CONFIG['START_EPOCH'] + 1
+endEpoch = CONFIG['START_EPOCH'] + CONFIG['EPOCHS']
+
 # В основном цикле обучения:
-for epoch in range(CONFIG['EPOCHS']):
+while epoch <= endEpoch:
     print(f"\n{'=' * 50}")
-    print(f"Epoch {epoch + 1}/{CONFIG['EPOCHS']}")
+    print(f"Epoch {epoch}/{endEpoch}")
     print(f"{'=' * 50}")
 
     # Training
@@ -59,52 +76,17 @@ for epoch in range(CONFIG['EPOCHS']):
 
     # Validation
     metrics = evaluate(model, val_loader, DEVICE)
+    reduced_metrics = reduce_metrics(metrics)
 
     # Вывод результатов с учетом weight каждой метрики
     print("\nValidation Metrics:")
-    weighted_avg_fbeta = 0
-    weighted_avg_recall = 0
-    weighted_avg_precision = 0
-    weighted_avg_accuracy = 0
-    total_weight = 0
+    print_metrics(metrics, reduced_metrics)
 
-    for metric_name, metric_values in metrics.items():
-        weight = CVSS_METRICS[metric_name]['weight']
-        weighted_fbeta = metric_values['fbeta'] * weight
-        weighted_recall = metric_values['recall'] * weight
-        weighted_precision = metric_values['precision'] * weight
-        weighted_accuracy = metric_values['weighted_accuracy'] * weight
-
-        print(f"  {metric_name}:")
-        print(
-            f"    Acc={metric_values['accuracy']:.4f} (weighted={metric_values['weighted_accuracy']:.4f}), FBeta={metric_values['fbeta']:.4f}, Recall={metric_values['recall']:.4f}, Precision={metric_values['precision']:.4f} (weight={weight})")
-
-        weighted_avg_fbeta += weighted_fbeta
-        weighted_avg_recall += weighted_recall
-        weighted_avg_precision += weighted_precision
-        weighted_avg_accuracy += weighted_accuracy
-        total_weight += weight
-
-    weighted_avg_fbeta /= total_weight
-    weighted_avg_recall /= total_weight
-    weighted_avg_precision /= total_weight
-    weighted_avg_accuracy /= total_weight
-
-    print(f"\n  Weighted Averages:")
-    print(f"    Accuracy: {weighted_avg_accuracy:.4f}")
-    print(f"    FBeta: {weighted_avg_fbeta:.4f}")
-    print(f"    Recall: {weighted_avg_recall:.4f}")
-    print(f"    Precision: {weighted_avg_precision:.4f}")
-
-    path = f"cvss_model_epoch_{epoch + 1:02d}.pth"
+    path = CONFIG['MODEL_PATH_FORMAT'].format(epoch=epoch)
     torch.save({
         'model_state_dict': model.state_dict(),
-        'tfidf_vectorizer': tfidf_vectorizer,
         'metrics': metrics,
-        'weighted_avg_fbeta': weighted_avg_fbeta,
-        'weighted_avg_recall': weighted_avg_recall,
-        'weighted_avg_precision': weighted_avg_precision,
-        'weighted_avg_accuracy': weighted_avg_accuracy,
+        'reduced_metrics': reduced_metrics,
     }, path)
     print(f"✓ Model saved to {path}")
 

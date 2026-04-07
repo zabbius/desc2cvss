@@ -141,4 +141,52 @@ def evaluate(model, dataloader, device):
 
     return metrics
 
+def reduce_metrics(metrics):
+    weighted_avg_fbeta = 0
+    weighted_avg_recall = 0
+    weighted_avg_precision = 0
+    weighted_avg_accuracy = 0
+    total_weight = 0
 
+    for metric_name, metric_values in metrics.items():
+        weight = CVSS_METRICS[metric_name]['weight']
+        weighted_fbeta = metric_values['fbeta'] * weight
+        weighted_recall = metric_values['recall'] * weight
+        weighted_precision = metric_values['precision'] * weight
+        weighted_accuracy = metric_values['weighted_accuracy'] * weight
+
+        print(f"  {metric_name}:")
+        print(
+            f"    Acc={metric_values['accuracy']:.4f} (weighted={metric_values['weighted_accuracy']:.4f}), FBeta={metric_values['fbeta']:.4f}, Recall={metric_values['recall']:.4f}, Precision={metric_values['precision']:.4f} (weight={weight})")
+
+        weighted_avg_fbeta += weighted_fbeta
+        weighted_avg_recall += weighted_recall
+        weighted_avg_precision += weighted_precision
+        weighted_avg_accuracy += weighted_accuracy
+        total_weight += weight
+
+    weighted_avg_fbeta /= total_weight
+    weighted_avg_recall /= total_weight
+    weighted_avg_precision /= total_weight
+    weighted_avg_accuracy /= total_weight
+
+    return {
+        'weighted_avg_fbeta': weighted_avg_fbeta,
+        'weighted_avg_recall': weighted_avg_recall,
+        'weighted_avg_precision': weighted_avg_precision,
+        'weighted_avg_accuracy': weighted_avg_accuracy,
+    }
+
+
+def print_metrics(metrics, reduced_metrics):
+    for metric_name, metric_values in metrics.items():
+        weight = CVSS_METRICS[metric_name]['weight']
+        print(f"  {metric_name}:")
+        print(
+            f"    Acc={metric_values['accuracy']:.4f} (weighted={metric_values['weighted_accuracy']:.4f}), FBeta={metric_values['fbeta']:.4f}, Recall={metric_values['recall']:.4f}, Precision={metric_values['precision']:.4f} (weight={weight})")
+
+    print(f"\n  Weighted Averages:")
+    print(f"    Accuracy: {reduced_metrics['weighted_avg_accuracy']:.4f}")
+    print(f"    FBeta: {reduced_metrics['weighted_avg_fbeta']:.4f}")
+    print(f"    Recall: {reduced_metrics['weighted_avg_recall']:.4f}")
+    print(f"    Precision: {reduced_metrics['weighted_avg_precision']:.4f}")
