@@ -61,11 +61,12 @@ total_steps = len(train_loader) * CONFIG['EPOCHS']
 scheduler = get_linear_schedule_with_warmup(
     optimizer, num_warmup_steps=CONFIG['WARMUP_STEPS'], num_training_steps=total_steps)
 
-epoch = CONFIG['START_EPOCH'] + 1
+epoch = CONFIG['START_EPOCH']
 endEpoch = CONFIG['START_EPOCH'] + CONFIG['EPOCHS']
 
 # В основном цикле обучения:
-while epoch <= endEpoch:
+while epoch < endEpoch:
+    epoch += 1
     print(f"\n{'=' * 50}")
     print(f"Epoch {epoch}/{endEpoch}")
     print(f"{'=' * 50}")
