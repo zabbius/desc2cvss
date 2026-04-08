@@ -22,8 +22,8 @@ def create_cvss_key(row):
 
 data['cvss_key'] = data.apply(create_cvss_key, axis=1)
 
-train_data, test_data = train_test_split(data, test_size=0.1, random_state=42, stratify=data['cvss_key'])
-train_data, val_data = train_test_split(train_data, test_size=0.1, random_state=42, stratify=train_data['cvss_key'])
+train_data, test_data = train_test_split(data, test_size=0.75, random_state=42, stratify=data['cvss_key'])
+train_data, val_data = train_test_split(train_data, test_size=0.3, random_state=42, stratify=train_data['cvss_key'])
 
 # Инициализация токенизатора
 tokenizer = AutoTokenizer.from_pretrained(CONFIG['MODEL_NAME'])

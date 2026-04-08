@@ -14,7 +14,6 @@ def compute_metrics(predictions, labels, metric_name):
 
     config = CVSS_METRICS[metric_name]
     beta = config['classes_beta']
-    class_weights = config['classes_weights']
     num_classes = len(config['classes'])
 
     # Вычисляем метрики для каждого класса отдельно
@@ -50,11 +49,10 @@ def compute_metrics(predictions, labels, metric_name):
             total = np.sum(true_binary)
             class_accuracies.append(correct / total if total > 0 else 1.0)
 
-    # Взвешенное среднее с использованием classes_weights
-    weighted_fbeta = np.average(fbeta_scores, weights=class_weights)
-    weighted_recall = np.average(recall_scores, weights=class_weights)
-    weighted_precision = np.average(precision_scores, weights=class_weights)
-    weighted_class_accuracy = np.average(class_accuracies, weights=class_weights)
+    weighted_fbeta = np.average(fbeta_scores)
+    weighted_recall = np.average(recall_scores)
+    weighted_precision = np.average(precision_scores)
+    weighted_class_accuracy = np.average(class_accuracies)
 
     # Общая accuracy (не взвешенная, просто доля правильных ответов)
     overall_accuracy = accuracy_score(true, preds)

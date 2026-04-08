@@ -120,7 +120,7 @@ class ApproxFBetaLoss(nn.Module):
             # Вычисляем weighted f-beta для компоненты
             per_class_fbeta = []
 
-            for class_idx, (beta, class_weight) in enumerate(zip(config['classes_beta'], config['classes_weights'])):
+            for class_idx, beta in enumerate(config['classes_beta']):
                 p = probs[:, class_idx]
                 t = targets_one_hot[:, class_idx]
 
@@ -136,11 +136,10 @@ class ApproxFBetaLoss(nn.Module):
                 fbeta = (1 + beta_squared) * (precision * recall) / (beta_squared * precision + recall + self.epsilon)
 
                 # Применяем вес класса
-                per_class_fbeta.append(fbeta * class_weight)
+                per_class_fbeta.append(fbeta)
 
             # Взвешенное среднее по классам для компоненты
-            total_class_weight = sum(config['classes_weights'])
-            component_fbeta = sum(per_class_fbeta) / total_class_weight
+            component_fbeta = sum(per_class_fbeta) / len(per_class_fbeta)
 
             # Loss = 1 - fbeta
             component_loss = 1 - component_fbeta
