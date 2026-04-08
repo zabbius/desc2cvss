@@ -155,10 +155,6 @@ def reduce_metrics(metrics):
         weighted_precision = metric_values['precision'] * weight
         weighted_accuracy = metric_values['weighted_accuracy'] * weight
 
-        print(f"  {metric_name}:")
-        print(
-            f"    Acc={metric_values['accuracy']:.4f} (weighted={metric_values['weighted_accuracy']:.4f}), FBeta={metric_values['fbeta']:.4f}, Recall={metric_values['recall']:.4f}, Precision={metric_values['precision']:.4f} (weight={weight})")
-
         weighted_avg_fbeta += weighted_fbeta
         weighted_avg_recall += weighted_recall
         weighted_avg_precision += weighted_precision
