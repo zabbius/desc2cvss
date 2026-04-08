@@ -4,7 +4,7 @@ from sklearn.metrics import fbeta_score, accuracy_score, recall_score, precision
 from tqdm import tqdm
 
 from cvss_metrics import CVSS_METRICS
-from model import ApproxFBetaLoss
+from model import ApproxFBetaLoss, FocalLoss
 
 
 def compute_metrics(predictions, labels, metric_name):
@@ -73,7 +73,7 @@ def train_epoch(model, dataloader, optimizer, scheduler, device):
     model.train()
     total_loss = 0
 
-    loss_fn = ApproxFBetaLoss().to(device)
+    loss_fn = FocalLoss().to(device)
 
     progress_bar = tqdm(dataloader, desc="Training", dynamic_ncols=True)
 

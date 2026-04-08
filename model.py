@@ -151,3 +151,54 @@ class ApproxFBetaLoss(nn.Module):
             component_losses[metric_name] = component_loss.detach().cpu().item()
 
         return total_loss, component_losses
+
+
+class FocalLoss(nn.Module):
+    """
+    Focal Loss для мультиклассовой классификации.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, outputs, targets):
+        total_loss = 0.0
+        component_losses = {}
+
+        for metric_name, logits in outputs.items():
+            config = CVSS_METRICS[metric_name]
+            targets_metric = targets[metric_name]
+            num_classes = logits.shape[1]
+
+            # Softmax
+            probs = nn.functional.softmax(logits, dim=1)
+
+            # One-hot encoding
+            targets_one_hot = torch.zeros_like(probs).scatter_(
+                1, targets_metric.unsqueeze(1), 1
+            )
+
+            # Получаем вероятность правильного класса
+            probs_target = (probs * targets_one_hot).sum(dim=1)
+
+            # Cross-entropy
+            ce_loss = -torch.log(probs_target + 1e-7)
+
+            # Focal weight
+            focal_weight = (1 - probs_target) ** config['gamma']
+
+            # Alpha weight
+            alpha = torch.tensor(
+                config['alphas'],
+                device=logits.device,
+                dtype=logits.dtype
+            )
+
+            alpha_t = alpha[targets_metric]
+            focal_loss = (alpha_t * focal_weight * ce_loss).mean()
+
+            weighted_focal_loss = focal_loss * config['weight']
+            total_loss += weighted_focal_loss
+            component_losses[metric_name] = focal_loss.detach().cpu().item()
+
+        return total_loss, component_losses

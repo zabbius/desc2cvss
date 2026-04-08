@@ -31,10 +31,10 @@ tokenizer = AutoTokenizer.from_pretrained(CONFIG['MODEL_NAME'])
 
 test_dataset = CVEDataset(test_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 
-batch_size = 4 #CONFIG['BATCH_SIZE']
+batch_size = 16 #CONFIG['BATCH_SIZE']
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 print(f"Using device: {DEVICE}")
 
