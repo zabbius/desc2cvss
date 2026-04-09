@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVSS Vulnerability Analyzer</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1400px;
+        }
+        
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+        
+        .severity-high {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .severity-medium {
+            background-color: #ffc107;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .severity-low {
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .metric-name {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .logit-bar {
+            height: 8px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .logit-item {
+            margin-bottom: 10px;
+        }
+        
+        .logit-label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .spinner-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .prediction-badge {
+            font-size: 1.1rem;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin: 5px;
+            display: inline-block;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .nav-tabs .nav-link {
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .example-card {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .example-card:hover {
+            background-color: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner-overlay" id="spinner">
+        <div class="spinner-content">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 mb-0">Анализ уязвимости...</p>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1 class="text-white">
+                <i class="fas fa-shield-alt"></i> CVSS Vulnerability Analyzer
+            </h1>
+            <p class="text-white-50">Анализ текста уязвимости и предсказание CVSS метрик</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-search"></i> Введите описание уязвимости
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Text Input -->
+                <div class="mb-4">
+                    <label for="vulnerabilityText" class="form-label fw-bold">
+                        <i class="fas fa-file-alt"></i> Описание CVE:
+                    </label>
+                    <textarea 
+                        class="form-control" 
+                        id="vulnerabilityText" 
+                        rows="5" 
+                        placeholder="Пример: Buffer overflow in the network service allows remote attacker to execute arbitrary code with high privileges..."
+                    ></textarea>
+                    
+                    <!-- Example CVEs -->
+                    <div class="mt-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-lightbulb"></i> Примеры для тестирования:
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="card example-card" onclick="setExample('cve1')">
+                                    <div class="card-body p-2">
+                                        <small>CVE-2023-28432: MinIO information disclosure</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card example-card" onclick="setExample('cve2')">
+                                    <div class="card-body p-2">
+                                        <small>CVE-2023-25157: GeoServer XSS vulnerability</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card example-card" onclick="setExample('cve3')">
+                                    <div class="card-body p-2">
+                                        <small>CVE-2023-27524: Apache Superset auth bypass</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card example-card" onclick="setExample('physical')">
+                                    <div class="card-body p-2">
+                                        <small>Physical access vulnerability example</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="analyzeVulnerability()">
+                        <i class="fas fa-chart-line"></i> Анализировать
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearText()">
+                        <i class="fas fa-eraser"></i> Очистить
+                    </button>
+                    <button class="btn btn-info" onclick="showRawJson()">
+                        <i class="fas fa-code"></i> Показать JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;" class="mt-4 fade-in">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs" id="resultTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#predictions" type="button" role="tab">
+                        <i class="fas fa-chart-simple"></i> Предсказания
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#logits" type="button" role="tab">
+                        <i class="fas fa-chart-bar"></i> Логиты (подробно)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#raw" type="button" role="tab">
+                        <i class="fas fa-code"></i> Raw JSON
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content mt-3">
+                <!-- Predictions Tab -->
+                <div class="tab-pane fade show active" id="predictions" role="tabpanel">
+                    <div class="row" id="predictionsGrid"></div>
+                </div>
+
+                <!-- Logits Tab -->
+                <div class="tab-pane fade" id="logits" role="tabpanel">
+                    <div class="row" id="logitsGrid"></div>
+                </div>
+
+                <!-- Raw JSON Tab -->
+                <div class="tab-pane fade" id="raw" role="tabpanel">
+                    <pre id="rawJson" style="max-height: 500px; overflow: auto;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger mt-4" style="display: none;" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> <span id="errorMessage"></span>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const API_URL = '/predict';
+        
+        // Примеры текстов
+        const examples = {
+            cve1: "MinIO is a Multi-Cloud Object Storage framework. In a cluster deployment starting with RELEASE.2019-12-17T23-16-33Z and before RELEASE.2023-03-20T20-16-18Z, MinIO returns all environment variables, including MINIO_SECRET_KEY and MINIO_ROOT_PASSWORD, resulting in information disclosure. When using distributed deployment, all environment variables are sent to the client.",
+            cve2: "GeoServer is an open source software server written in Java that allows users to share and edit geospatial data. A stored cross-site scripting (XSS) vulnerability exists in versions prior to 2.21.4 and 2.22.2 that allows an authenticated administrator with workspace-level privileges to store a JavaScript payload in the GeoServer catalog that will execute in the context of another user's browser when viewed in the REST Coverage Store/Data Store page.",
+            cve3: "Session validation bypass in Apache Superset versions up to and including 2.1.0. Installations that have not altered the default configured SECRET_KEY according to installation instructions allow for an attacker to authenticate and access unauthorized resources.",
+            physical: "Physical access to the device allows an attacker to insert a malicious USB drive that executes arbitrary code with kernel privileges. The attacker needs to be physically present at the console and have direct hardware access."
+        };
+        
+        let currentResponse = null;
+        
+        // Установить пример текста
+        function setExample(exampleId) {
+            const text = examples[exampleId];
+            if (text) {
+                document.getElementById('vulnerabilityText').value = text;
+                // Автоматически анализировать
+                analyzeVulnerability();
+            }
+        }
+        
+        // Очистить текст
+        function clearText() {
+            document.getElementById('vulnerabilityText').value = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorAlert').style.display = 'none';
+        }
+        
+        // Анализ уязвимости
+        async function analyzeVulnerability() {
+            const text = document.getElementById('vulnerabilityText').value.trim();
+            
+            if (!text) {
+                showError('Пожалуйста, введите описание уязвимости');
+                return;
+            }
+            
+            // Показать спиннер
+            document.getElementById('spinner').style.display = 'flex';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorAlert').style.display = 'none';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                currentResponse = data;
+                
+                // Отобразить результаты
+                displayPredictions(data.prediction);
+                displayLogits(data.logits);
+                displayRawJson(data);
+                
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                // Переключиться на вкладку предсказаний
+                const tabTrigger = document.querySelector('#resultTab button[data-bs-target="#predictions"]');
+                if (tabTrigger) {
+                    const tab = new bootstrap.Tab(tabTrigger);
+                    tab.show();
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Ошибка при анализе уязвимости');
+            } finally {
+                document.getElementById('spinner').style.display = 'none';
+            }
+        }
+        
+        // Отображение предсказаний
+        function displayPredictions(predictions) {
+            const grid = document.getElementById('predictionsGrid');
+            grid.innerHTML = '';
+            
+            // Определяем цвета для разных метрик
+            const getMetricColor = (metric, value) => {
+                if (metric === 'attack_vector') {
+                    if (value === 'NETWORK') return 'danger';
+                    if (value === 'LOCAL') return 'warning';
+                    return 'info';
+                }
+                if (metric === 'confidentiality' || metric === 'integrity' || metric === 'availability') {
+                    if (value === 'HIGH') return 'danger';
+                    if (value === 'LOW') return 'warning';
+                    return 'secondary';
+                }
+                if (metric === 'privileges_required') {
+                    if (value === 'NONE') return 'danger';
+                    if (value === 'LOW') return 'warning';
+                    return 'info';
+                }
+                return 'primary';
+            };
+            
+            const getMetricIcon = (metric) => {
+                const icons = {
+                    'attack_vector': 'fa-network-wired',
+                    'attack_complexity': 'fa-microchip',
+                    'privileges_required': 'fa-lock',
+                    'user_interaction': 'fa-users',
+                    'scope': 'fa-expand',
+                    'confidentiality': 'fa-eye',
+                    'integrity': 'fa-pen',
+                    'availability': 'fa-clock'
+                };
+                return icons[metric] || 'fa-chart-line';
+            };
+            
+            for (const [metric, value] of Object.entries(predictions)) {
+                const colorClass = getMetricColor(metric, value);
+                const icon = getMetricIcon(metric);
+                
+                const col = document.createElement('div');
+                col.className = 'col-md-3 col-sm-6';
+                col.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-name">
+                            <i class="fas ${icon}"></i> ${metric.replace(/_/g, ' ').toUpperCase()}
+                        </div>
+                        <div class="metric-value">
+                            <span class="badge bg-${colorClass} fs-6 p-2">
+                                ${value.replace(/_/g, ' ')}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+            }
+        }
+        
+        // Отображение логитов
+        function displayLogits(logits) {
+            const grid = document.getElementById('logitsGrid');
+            grid.innerHTML = '';
+            
+            for (const [metric, classes] of Object.entries(logits)) {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 mb-3';
+                
+                let logitsHtml = `
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-chart-line"></i> ${metric.replace(/_/g, ' ').toUpperCase()}</strong>
+                        </div>
+                        <div class="card-body">
+                `;
+                
+                // Сортируем по значению логита
+                const sortedClasses = Object.entries(classes).sort((a, b) => b[1] - a[1]);
+                const maxLogit = Math.max(...Object.values(classes));
+                const minLogit = Math.min(...Object.values(classes));
+                
+                for (const [className, logitValue] of sortedClasses) {
+                    // Нормализуем для отображения (0-100%)
+                    const normalized = ((logitValue - minLogit) / (maxLogit - minLogit)) * 100;
+                    const percentage = Math.exp(logitValue) / Object.values(classes).reduce((a, b) => a + Math.exp(b), 0) * 100;
+                    
+                    logitsHtml += `
+                        <div class="logit-item">
+                            <div class="logit-label">
+                                <span>${className.replace(/_/g, ' ')}</span>
+                                <span class="fw-bold">${logitValue.toFixed(4)} (${percentage.toFixed(1)}%)</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: ${normalized}%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                logitsHtml += `
+                        </div>
+                    </div>
+                `;
+                
+                col.innerHTML = logitsHtml;
+                grid.appendChild(col);
+            }
+        }
+        
+        // Отображение raw JSON
+        function displayRawJson(data) {
+            const pre = document.getElementById('rawJson');
+            pre.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // Показать raw JSON
+        function showRawJson() {
+            if (currentResponse) {
+                const tabTrigger = document.querySelector('#resultTab button[data-bs-target="#raw"]');
+                if (tabTrigger) {
+                    const tab = new bootstrap.Tab(tabTrigger);
+                    tab.show();
+                }
+            } else {
+                showError('Нет данных для отображения. Сначала выполните анализ.');
+            }
+        }
+        
+        // Показать ошибку
+        function showError(message) {
+            const errorDiv = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Поддержка Enter (Ctrl+Enter для отправки)
+        document.getElementById('vulnerabilityText').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                analyzeVulnerability();
+            }
+        });
+        
+        // Инициализация Bootstrap tabs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Настройка тултипов если нужно
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>
