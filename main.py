@@ -22,7 +22,8 @@ def create_cvss_key(row):
 
 data['cvss_key'] = data.apply(create_cvss_key, axis=1)
 
-train_data, test_data = train_test_split(data, test_size=0.75, random_state=42, stratify=data['cvss_key'])
+#train_data, test_data = train_test_split(data, test_size=0.75, random_state=42, stratify=data['cvss_key'])
+train_data = data
 train_data, val_data = train_test_split(train_data, test_size=0.3, random_state=42, stratify=train_data['cvss_key'])
 
 # Инициализация токенизатора
@@ -30,12 +31,12 @@ tokenizer = AutoTokenizer.from_pretrained(CONFIG['MODEL_NAME'])
 
 train_dataset = CVEDataset(train_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 val_dataset = CVEDataset(val_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
-test_dataset = CVEDataset(test_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
+#test_dataset = CVEDataset(test_data, tokenizer, tfidf_vectorizer=tfidf_vectorizer)
 
 # DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=True, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False, num_workers=4)
-test_loader = DataLoader(test_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False, num_workers=4)
+#test_loader = DataLoader(test_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False, num_workers=4)
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
