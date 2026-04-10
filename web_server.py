@@ -1,5 +1,5 @@
 import joblib
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, render_template
 import torch
 import numpy as np
 from transformers import AutoTokenizer
@@ -95,6 +95,21 @@ def predict():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/new')
+def bag_page():
+    """Страница /new с формой для анализа уязвимостей"""
+    examples = [
+        {"id": "cve1", "name": "CVE-2023-28432: MinIO"},
+        {"id": "cve2", "name": "CVE-2023-25157: GeoServer"},
+        {"id": "cve3", "name": "CVE-2023-27524: Apache Superset"},
+        {"id": "physical", "name": "Physical access"}
+    ]
+    return render_template('new.html', 
+                         title="Desc2cvss Scoring Pedictor",
+                         description="Сервис для анализа описаний уязвимостей и предсказания CVSS метрик",
+                         metrics=CVSS_METRICS,
+                         examples=examples)
 
 @app.route('/health', methods=['GET'])
 def health():
