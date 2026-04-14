@@ -12,12 +12,15 @@ from model import SecureBERTWithTFIDF
 from train import evaluate, train_epoch, reduce_metrics, print_metrics
 
 tfidf_vectorizer = joblib.load("tfidf_vectorizer.joblib")
-data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
+data = pandas.read_csv("data/cvss_all_11042026.csv.gz")
 
 def create_cvss_key(row):
     return "_".join([
         str(row['attack_vector']),
+        str(row['attack_complexity']),
         str(row['user_interaction']),
+        str(row['availability']),
+        str(row['scope']),
     ])
 
 data['cvss_key'] = data.apply(create_cvss_key, axis=1)

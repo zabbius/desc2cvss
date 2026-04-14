@@ -426,13 +426,18 @@ def get_single_confusion_matrix(model, test_loader, device, metric_name='attack_
 
 if __name__ == "__main__":
     tfidf_vectorizer = joblib.load("tfidf_vectorizer.joblib")
-    data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
+    data = pandas.read_csv("data/cvss_all_11042026.csv.gz")
+
 
     def create_cvss_key(row):
         return "_".join([
             str(row['attack_vector']),
+            str(row['attack_complexity']),
             str(row['user_interaction']),
+            str(row['availability']),
+            str(row['scope']),
         ])
+
 
     data['cvss_key'] = data.apply(create_cvss_key, axis=1)
 

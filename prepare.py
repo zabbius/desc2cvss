@@ -3,7 +3,7 @@ import gzip
 import pandas as pd
 
 # Read the gzipped JSON file
-with gzip.open('data/output_ML_all.json.gz', 'rt', encoding='utf-8') as f:
+with gzip.open('data/cvss_all_11042026.json.gz', 'rt', encoding='utf-8') as f:
     data = json.load(f)
 
 # Convert to CSV format with flattened CVSS metrics
@@ -30,7 +30,7 @@ for entry in data:
 
 # Create DataFrame and save as gzipped CSV
 df = pd.DataFrame(rows)
-df.to_csv('data/output_ML_all.csv.gz', index=False, compression='gzip')
+df.to_csv('data/cvss_all_11042026.csv.gz', index=False, compression='gzip')
 
 print(f'Successfully processed {len(df)} entries')
 print(f'Columns: {list(df.columns)}')

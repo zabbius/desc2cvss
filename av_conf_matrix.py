@@ -18,7 +18,10 @@ data = pandas.read_csv("data/filtered_output_ML_all.csv.gz")
 def create_cvss_key(row):
     return "_".join([
         str(row['attack_vector']),
+        str(row['attack_complexity']),
         str(row['user_interaction']),
+        str(row['availability']),
+        str(row['scope']),
     ])
 
 data['cvss_key'] = data.apply(create_cvss_key, axis=1)

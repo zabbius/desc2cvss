@@ -5,7 +5,7 @@ import seaborn as sns
 from scipy.stats import chi2_contingency
 
 # Загрузка данных
-df = pd.read_csv('data/filtered_output_ML_all.csv.gz')  # замените на ваш путь
+df = pd.read_csv('data/cvss_all_11042026.csv.gz')  # замените на ваш путь
 
 # 1. Анализ целевой переменной (например, availability или составной риск)
 # Если нет отдельной целевой метки, можно создать score
